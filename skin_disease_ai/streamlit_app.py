@@ -4,6 +4,7 @@ os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 import streamlit as st
+os.environ['TF_USE_LEGACY_KERAS'] = '1'
 import tensorflow as tf
 from tensorflow.keras import layers, models
 import numpy as np
