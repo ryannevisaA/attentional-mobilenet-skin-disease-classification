@@ -355,24 +355,47 @@ CLASS_PRESCRIPTION = {
 CLASS_KEYS = list(CLASS_NAMES.keys())
 
 # ── FIXED thresholds ──────────────────────────────────────────
-CONFIDENCE_THRESHOLD = 0.55  
-ENTROPY_THRESHOLD = 0.90    
+CONFIDENCE_THRESHOLD = 0.55
+ENTROPY_THRESHOLD = 0.90
 base_dir = os.path.dirname(os.path.abspath(__file__))
 
-# ── Model ─────────────────────────────────────────────────────
+# ── SE Block (custom layer) ───────────────────────────────────
+class SEBlock(keras.layers.Layer):
+    def __init__(self, filters, **kwargs):
+        super(SEBlock, self).__init__(**kwargs)
+        self.filters = filters
+        self.gap = keras.layers.GlobalAveragePooling2D()
+        self.reshape = keras.layers.Reshape((1, 1, filters))
+        self.dense1 = keras.layers.Dense(filters // 16, activation='relu')
+        self.dense2 = keras.layers.Dense(filters, activation='sigmoid')
+        self.multiply = keras.layers.Multiply()
+
+    def call(self, x):
+        se = self.gap(x)
+        se = self.reshape(se)
+        se = self.dense1(se)
+        se = self.dense2(se)
+        return self.multiply([x, se])
+
+    def get_config(self):
+        config = super().get_config()
+        config.update({'filters': self.filters})
+        return config
+
 def attention_block(x):
     filters = x.shape[-1]
-    se = layers.GlobalAveragePooling2D()(x)
-    se = layers.Reshape((1, 1, filters))(se)
-    se = layers.Dense(filters // 16, activation='relu')(se)
-    se = layers.Dense(filters, activation='sigmoid')(se)
-    return layers.Multiply()([x, se])
+    se = keras.layers.GlobalAveragePooling2D()(x)
+    se = keras.layers.Reshape((1, 1, filters))(se)
+    se = keras.layers.Dense(filters // 16, activation='relu')(se)
+    se = keras.layers.Dense(filters, activation='sigmoid')(se)
+    return keras.layers.Multiply()([x, se])
 
+# ── Model ─────────────────────────────────────────────────────
 @st.cache_resource
 def load_model():
     m = keras.models.load_model(
         os.path.join(base_dir, 'best_model.h5'),
-        custom_objects={'attention_block': attention_block}
+        custom_objects={'SEBlock': SEBlock, 'attention_block': attention_block}
     )
     m.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
     return m
@@ -460,7 +483,7 @@ def generate_pdf(disease_name, confidence, description, prescriptions, image, is
     pdf.multi_cell(0, 5, safe("DISCLAIMER: This report is for educational screening only. Not a substitute for professional medical advice. Always consult a qualified dermatologist."))
     return bytes(pdf.output())
 
-# ── Skin Validator (RELAXED) ───────────────────────────────────
+# ── Skin Validator ────────────────────────────────────────────
 def is_valid_skin_image(pil_img):
     small = pil_img.resize((50, 50)).convert('RGB')
     pixels = np.array(small).reshape(-1, 3).astype(float)
@@ -470,7 +493,6 @@ def is_valid_skin_image(pil_img):
     color_std = np.std(pixels)
     w, h = pil_img.size
     aspect_ratio = max(w, h) / min(w, h)
-    # Very relaxed — only reject obvious non-skin
     is_clearly_not_skin = skin_ratio < 0.10
     is_colorful_poster = color_std > 75 and skin_ratio < 0.20
     is_very_portrait = aspect_ratio > 2.0 and skin_ratio < 0.25
@@ -478,11 +500,9 @@ def is_valid_skin_image(pil_img):
 
 # ── Main ──────────────────────────────────────────────────────
 def main():
-    # Hero
     st.markdown('<h1 class="hero-title">🔬 DermAI</h1>', unsafe_allow_html=True)
     st.markdown('<p class="hero-subtitle">Attentional-MobileNet · Dermoscopic Skin Disease Classifier</p>', unsafe_allow_html=True)
 
-    # Stats bar
     st.markdown("""
     <div class="stats-bar">
         <div class="stat-item">
@@ -524,7 +544,6 @@ def main():
         if uploaded_file:
             pil_img = Image.open(uploaded_file).convert('RGB')
             st.image(pil_img, use_column_width=True)
-
             st.markdown("""
             <div style="margin-top:1rem; padding:0.8rem; background:rgba(0,212,255,0.05); border:1px solid rgba(0,212,255,0.15); border-radius:10px;">
                 <p style="font-size:0.75rem; color:#4a5568; margin:0; text-transform:uppercase; letter-spacing:1px;">Supported Diseases</p>
