@@ -2,11 +2,12 @@ import os
 import math
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+os.environ['TF_USE_LEGACY_KERAS'] = '1'
 
 import streamlit as st
-os.environ['TF_USE_LEGACY_KERAS'] = '1'
 import tensorflow as tf
-from tensorflow.keras import layers, models
+import tf_keras as keras
+from tf_keras import layers, models
 import numpy as np
 from PIL import Image
 from datetime import datetime
@@ -369,7 +370,7 @@ def attention_block(x):
 
 @st.cache_resource
 def load_model():
-    m = tf.keras.models.load_model(
+    m = keras.models.load_model(
         os.path.join(base_dir, 'best_model.keras'),
         custom_objects={'attention_block': attention_block}
     )
