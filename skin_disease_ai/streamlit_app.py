@@ -371,7 +371,7 @@ def attention_block(x):
 @st.cache_resource
 def load_model():
     m = keras.models.load_model(
-        os.path.join(base_dir, 'best_model.keras'),
+        os.path.join(base_dir, 'best_model.h5'),
         custom_objects={'attention_block': attention_block}
     )
     m.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
