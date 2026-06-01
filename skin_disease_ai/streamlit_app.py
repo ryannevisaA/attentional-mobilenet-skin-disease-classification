@@ -393,10 +393,22 @@ def attention_block(x):
 # ── Model ─────────────────────────────────────────────────────
 @st.cache_resource
 def load_model():
-    m = keras.models.load_model(
-        os.path.join(base_dir, 'best_model.h5'),
-        custom_objects={'SEBlock': SEBlock, 'attention_block': attention_block}
-    )
+    try:
+        m = keras.models.load_model(
+            os.path.join(base_dir, 'best_model.h5'),
+            custom_objects={
+                'SEBlock': SEBlock,
+                'attention_block': attention_block
+            },
+            compile=False
+        )
+    except Exception:
+        # Fallback: rebuild model structure and load weights only
+        m = keras.models.load_model(
+            os.path.join(base_dir, 'best_model.h5'),
+            custom_objects={'attention_block': attention_block},
+            compile=False
+        )
     m.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
     return m
 
