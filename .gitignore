@@ -1,0 +1,11 @@
+venv/
+**/venv/
+__pycache__/
+**/__pycache__/
+*.pyc
+all_images/
+**/all_images/
+dataset/
+**/dataset/
+HAM10000/
+**/HAM10000/
