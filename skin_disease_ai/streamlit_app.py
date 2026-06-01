@@ -13,8 +13,7 @@ from datetime import datetime
 from fpdf import FPDF
 import tempfile
 import keras
-st.write("Keras version:", keras.__version__)
-st.stop()
+
 
 st.set_page_config(
     page_title="DermAI — Skin Disease Classifier",
