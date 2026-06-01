@@ -394,12 +394,21 @@ def attention_block(x):
 
 # ── Model ─────────────────────────────────────────────────────
 @st.cache_resource
-@st.cache_resource
 def load_model():
-    m = keras.models.load_model(
-        os.path.join(base_dir, 'best_model_clean.keras'),
-        compile=False
-    )
+    inputs = keras.Input(shape=(224, 224, 3))
+    base = keras.applications.MobileNetV2(input_shape=(224, 224, 3), include_top=False, weights=None)
+    x = base(inputs)
+    se = keras.layers.GlobalAveragePooling2D()(x)
+    se = keras.layers.Reshape((1, 1, 1280))(se)
+    se = keras.layers.Dense(80, activation='relu')(se)
+    se = keras.layers.Dense(1280, activation='sigmoid')(se)
+    x = keras.layers.Multiply()([x, se])
+    x = keras.layers.GlobalAveragePooling2D()(x)
+    x = keras.layers.Dense(256, activation='relu')(x)
+    x = keras.layers.Dropout(0.5)(x)
+    outputs = keras.layers.Dense(7, activation='softmax')(x)
+    m = keras.Model(inputs, outputs)
+    m.load_weights(os.path.join(base_dir, 'final_weights.weights.h5'))
     m.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
     return m
 
