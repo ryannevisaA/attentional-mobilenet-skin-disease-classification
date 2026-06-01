@@ -1,5 +1,5 @@
-tensorflow-cpu==2.15.0
-tf-keras
+tensorflow==2.21.0
+keras==3.13.2
 streamlit
 numpy
 pandas

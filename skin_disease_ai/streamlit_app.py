@@ -2,12 +2,11 @@ import os
 import math
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-os.environ['TF_USE_LEGACY_KERAS'] = '1'
 
 import streamlit as st
 import tensorflow as tf
-import tf_keras as keras
-from tf_keras import layers, models
+import keras
+from keras import layers, models
 import numpy as np
 from PIL import Image
 from datetime import datetime
@@ -393,22 +392,11 @@ def attention_block(x):
 # ── Model ─────────────────────────────────────────────────────
 @st.cache_resource
 def load_model():
-    try:
-        m = keras.models.load_model(
-            os.path.join(base_dir, 'best_model.h5'),
-            custom_objects={
-                'SEBlock': SEBlock,
-                'attention_block': attention_block
-            },
-            compile=False
-        )
-    except Exception:
-        # Fallback: rebuild model structure and load weights only
-        m = keras.models.load_model(
-            os.path.join(base_dir, 'best_model.h5'),
-            custom_objects={'attention_block': attention_block},
-            compile=False
-        )
+    m = keras.models.load_model(
+        os.path.join(base_dir, 'best_model_fixed.keras'),
+        custom_objects={'attention_block': attention_block},
+        compile=False
+    )
     m.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
     return m
 
